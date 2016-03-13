@@ -1,0 +1,27 @@
+{
+    "appKeys": {
+        "dummy": 0
+    },
+    "capabilities": [
+        ""
+    ],
+    "companyName": "kaezarrex",
+    "enableMultiJS": true,
+    "longName": "Dials",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "sdkVersion": "3",
+    "shortName": "Dials",
+    "targetPlatforms": [
+        "aplite",
+        "basalt",
+        "chalk"
+    ],
+    "uuid": "25becbb7-c0bc-4180-82b6-b36f1bf894c7",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": true
+    }
+}
