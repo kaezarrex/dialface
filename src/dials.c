@@ -45,14 +45,14 @@ static void update_time_proc(Layer *layer, GContext *ctx) {
 
   // Draw ticks
   graphics_context_set_stroke_color(ctx, GColorWhite);
-  graphics_context_set_stroke_width(ctx, 5);
+  graphics_context_set_stroke_width(ctx, 3);
   
   for(int i = 0; i < 60; i++) {
     int r = s_radius * 0.96;
     
     if (i % 5 == 0) {
       graphics_context_set_stroke_color(ctx, GColorWhite);
-      graphics_context_set_stroke_width(ctx, 5);
+      graphics_context_set_stroke_width(ctx, 3);
       r = s_radius * 0.92;
     } else if (i % 5 == 1) {
       graphics_context_set_stroke_color(ctx, GColorDarkGray);

@@ -6,7 +6,7 @@
 #define STEP_GOAL 10000
 
 static Layer *s_health_layer;
-int current_steps;
+static int current_steps;
 
 static int todays_steps() {
   HealthMetric metric = HealthMetricStepCount;
@@ -16,8 +16,9 @@ static int todays_steps() {
   HealthServiceAccessibilityMask mask = health_service_metric_accessible(metric, start, end);
 
   if(mask & HealthServiceAccessibilityMaskAvailable) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "Steps today: %d", (int)health_service_sum_today(metric));
-    return (int)health_service_sum_today(metric);
+    int steps = (int)health_service_sum_today(metric);
+    APP_LOG(APP_LOG_LEVEL_INFO, "Steps today: %d", steps);
+    return steps;
   } else {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Data unavailable!");
     return 0;
@@ -38,14 +39,14 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 static void health_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
-  int radius = bounds.size.w / 2;
+  int radius = bounds.size.w / 2.2;
   float dial_angle = TRIG_MAX_ANGLE * 6 / 12;
   
   GPoint dial_center = (GPoint) {
     .x = (int16_t)(sin_lookup(dial_angle) * (int32_t)(radius * 0.5) / TRIG_MAX_RATIO) + center.x,
     .y = (int16_t)(-cos_lookup(dial_angle) * (int32_t)(radius * 0.5) / TRIG_MAX_RATIO) + center.y,
   };
-  draw_dial(layer, ctx, dial_center, 25, 100, current_steps / 100);
+  draw_dial(layer, ctx, dial_center, 20, 100, current_steps / 100.0);
 }
 
 void health_dial_load(Window *window) {
@@ -56,7 +57,7 @@ void health_dial_load(Window *window) {
     APP_LOG(APP_LOG_LEVEL_INFO, "Reading persistent step data");
     current_steps = persist_read_int(STEPS_KEY);
   } else {
-    current_steps = todays_progress();
+    current_steps = todays_steps();
   }
 
   s_health_layer = layer_create(GRect(0, 0, bounds.size.w, bounds.size.h));

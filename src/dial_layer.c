@@ -6,7 +6,7 @@ void draw_dial(Layer *layer, GContext *ctx, GPoint center, int radius, int max, 
     int r = radius * 0.95;
     
     if (i % 10 == 0) {
-      graphics_context_set_stroke_color(ctx, GColorWhite);
+      graphics_context_set_stroke_color(ctx, GColorLightGray);
       graphics_context_set_stroke_width(ctx, 3);
       r = radius * 0.9;
     } else if (i % 10 == 2) {
