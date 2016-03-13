@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include "health_dial.h"
 
 #define COLORS       PBL_IF_COLOR_ELSE(true, false)
 #define ANTIALIASING true
@@ -12,12 +13,11 @@ typedef struct {
 
 static Window *s_main_window;
 static Layer *s_canvas_layer;
+static Layer *s_time_layer;
 
 static GPoint s_center;
 static Time s_last_time;
 static int s_radius = 90, s_color_channels[3];
-
-/************************************ UI **************************************/
 
 static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   // Store time
@@ -35,71 +35,41 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   }
 }
 
-static void draw_dial(Layer *layer, GContext *ctx, GPoint center, int radius) {
-  graphics_context_set_stroke_color(ctx, GColorWhite);
-  graphics_context_set_stroke_width(ctx, 3);
-  
-  for(int i = 0; i < 10; i++) {
-    float angle = TRIG_MAX_ANGLE * i / 10;
-    GPoint outer_point = (GPoint) {
-      .x = (int16_t)(sin_lookup(angle) * (int32_t)(radius) / TRIG_MAX_RATIO) + center.x,
-      .y = (int16_t)(-cos_lookup(angle) * (int32_t)(radius) / TRIG_MAX_RATIO) + center.y,
-    };
-    GPoint inner_point = (GPoint) {
-      .x = (int16_t)(sin_lookup(angle) * (int32_t)(radius * 0.9) / TRIG_MAX_RATIO) + center.x,
-      .y = (int16_t)(-cos_lookup(angle) * (int32_t)(radius * 0.9) / TRIG_MAX_RATIO) + center.y,
-    };
-    graphics_draw_line(ctx, outer_point, inner_point);
-  }
-  
-  graphics_context_set_stroke_width(ctx, 3);
-  
-  float hand_angle = TRIG_MAX_ANGLE * s_last_time.minutes / 60;
-
-  // Plot hands
-  GPoint hand_point = (GPoint) {
-    .x = (int16_t)(sin_lookup(hand_angle) * (int32_t)(radius * 0.7) / TRIG_MAX_RATIO) + center.x,
-    .y = (int16_t)(-cos_lookup(hand_angle) * (int32_t)(radius * 0.7) / TRIG_MAX_RATIO) + center.y,
-  };
-  
-  graphics_context_set_stroke_color(ctx, GColorBrightGreen);
-  graphics_draw_line(ctx, center, hand_point);
-  
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_circle(ctx, center, 3);
-}
-
-static void update_proc(Layer *layer, GContext *ctx) {
-  graphics_context_set_antialiased(ctx, ANTIALIASING);
-
-  // White clockface
+static void update_canvas_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_circle(ctx, s_center, s_radius);
+}
+
+static void update_time_proc(Layer *layer, GContext *ctx) {
+  graphics_context_set_antialiased(ctx, ANTIALIASING);
 
   // Draw ticks
   graphics_context_set_stroke_color(ctx, GColorWhite);
   graphics_context_set_stroke_width(ctx, 5);
   
-  for(int i = 0; i < 12; i++) {
-    float angle = TRIG_MAX_ANGLE * i / 12;
+  for(int i = 0; i < 60; i++) {
+    int r = s_radius * 0.96;
+    
+    if (i % 5 == 0) {
+      graphics_context_set_stroke_color(ctx, GColorWhite);
+      graphics_context_set_stroke_width(ctx, 5);
+      r = s_radius * 0.92;
+    } else if (i % 5 == 1) {
+      graphics_context_set_stroke_color(ctx, GColorDarkGray);
+      graphics_context_set_stroke_width(ctx, 3);
+    }
+    
+    float angle = TRIG_MAX_ANGLE * i / 60;
     GPoint outer_point = (GPoint) {
       .x = (int16_t)(sin_lookup(angle) * (int32_t)(s_radius) / TRIG_MAX_RATIO) + s_center.x,
       .y = (int16_t)(-cos_lookup(angle) * (int32_t)(s_radius) / TRIG_MAX_RATIO) + s_center.y,
     };
     GPoint inner_point = (GPoint) {
-      .x = (int16_t)(sin_lookup(angle) * (int32_t)(s_radius * 0.92) / TRIG_MAX_RATIO) + s_center.x,
-      .y = (int16_t)(-cos_lookup(angle) * (int32_t)(s_radius * 0.92) / TRIG_MAX_RATIO) + s_center.y,
+      .x = (int16_t)(sin_lookup(angle) * (int32_t)(r) / TRIG_MAX_RATIO) + s_center.x,
+      .y = (int16_t)(-cos_lookup(angle) * (int32_t)(r) / TRIG_MAX_RATIO) + s_center.y,
     };
     graphics_draw_line(ctx, outer_point, inner_point);
   }
-  
-  // Draw dial
-  float dial_angle = TRIG_MAX_ANGLE * 6 / 12;
-  GPoint dial_center = (GPoint) {
-    .x = (int16_t)(sin_lookup(dial_angle) * (int32_t)(s_radius * 0.5) / TRIG_MAX_RATIO) + s_center.x,
-    .y = (int16_t)(-cos_lookup(dial_angle) * (int32_t)(s_radius * 0.5) / TRIG_MAX_RATIO) + s_center.y,
-  };
-  draw_dial(layer, ctx, dial_center, 25);
 
   // Adjust for minutes through the hour
   float minute_angle = TRIG_MAX_ANGLE * s_last_time.minutes / 60;
@@ -147,12 +117,19 @@ static void window_load(Window *window) {
   s_center = grect_center_point(&window_bounds);
 
   s_canvas_layer = layer_create(window_bounds);
-  layer_set_update_proc(s_canvas_layer, update_proc);
+  layer_set_update_proc(s_canvas_layer, update_canvas_proc);
   layer_add_child(window_layer, s_canvas_layer);
+  
+  health_dial_load(window);
+  
+  s_time_layer = layer_create(window_bounds);
+  layer_set_update_proc(s_time_layer, update_time_proc);
+  layer_add_child(window_layer, s_time_layer);
 }
 
 static void window_unload(Window *window) {
   layer_destroy(s_canvas_layer);
+  health_dial_unload();
 }
 
 /*********************************** App **************************************/
