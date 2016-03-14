@@ -1,7 +1,12 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "AppKeySunrise": 1,
+        "AppKeySunset": 2,
+        "AppKeyTemperature": 0
+    },
     "capabilities": [
-        ""
+        "location",
+        "health"
     ],
     "companyName": "kaezarrex",
     "enableMultiJS": true,
@@ -13,8 +18,6 @@
     "sdkVersion": "3",
     "shortName": "Dials",
     "targetPlatforms": [
-        "aplite",
-        "basalt",
         "chalk"
     ],
     "uuid": "25becbb7-c0bc-4180-82b6-b36f1bf894c7",

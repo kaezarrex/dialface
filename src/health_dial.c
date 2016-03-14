@@ -7,6 +7,7 @@
 
 static Layer *s_health_layer;
 static int current_steps;
+static bool dark_theme = false;
 
 static int todays_steps() {
   HealthMetric metric = HealthMetricStepCount;
@@ -25,28 +26,29 @@ static int todays_steps() {
   }
 }
 
-static float todays_progress() {
-  return todays_steps() / (float)STEP_GOAL;
-}
-
-static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  if(tick_time->tm_min % 10 == 0) {
-    current_steps = todays_progress();
-    layer_mark_dirty(s_health_layer);
-  }
-}
-
 static void health_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
-  int radius = bounds.size.w / 2.2;
+  int radius = bounds.size.w / 2;
   float dial_angle = TRIG_MAX_ANGLE * 6 / 12;
+  GColor color = current_steps < STEP_GOAL ? GColorBrightGreen : GColorBrilliantRose;
   
   GPoint dial_center = (GPoint) {
     .x = (int16_t)(sin_lookup(dial_angle) * (int32_t)(radius * 0.5) / TRIG_MAX_RATIO) + center.x,
     .y = (int16_t)(-cos_lookup(dial_angle) * (int32_t)(radius * 0.5) / TRIG_MAX_RATIO) + center.y,
   };
-  draw_dial(layer, ctx, dial_center, 20, 100, current_steps / 100.0);
+  draw_dial(layer, ctx, dark_theme, color, dial_center, radius/4, 100, current_steps / 100.0);
+}
+
+void health_dial_update(struct tm *tick_time, bool dark) {
+  if(tick_time->tm_min % 5 == 0) {
+    current_steps = todays_steps();
+    layer_mark_dirty(s_health_layer);
+  }
+  if (dark_theme != dark) {
+    dark_theme = dark;
+    layer_mark_dirty(s_health_layer);
+  }
 }
 
 void health_dial_load(Window *window) {
@@ -63,8 +65,6 @@ void health_dial_load(Window *window) {
   s_health_layer = layer_create(GRect(0, 0, bounds.size.w, bounds.size.h));
   layer_set_update_proc(s_health_layer, health_update_proc);
   layer_add_child(window_get_root_layer(window), s_health_layer);
-
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 
   layer_mark_dirty(s_health_layer);
 }
